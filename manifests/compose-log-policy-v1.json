@@ -1,0 +1,205 @@
+{
+  "schema_version": 3,
+  "policy_id": "noid-fedora44-anaconda44.30-kvm-v1",
+  "scope": "Fedora 44 Server netinst 44-1.7, Anaconda 44.30-2.fc44, canonical KVM compose only",
+  "bindings": {
+    "fedora_base_release": "44-1.7",
+    "anaconda_evr": "44.30-2.fc44"
+  },
+  "success_markers": [
+    {
+      "id": "anaconda_version",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} INFO anaconda:anaconda: main: /usr/bin/anaconda 44\\.30-2\\.fc44$",
+      "min_count": 1,
+      "max_count": 1
+    },
+    {
+      "id": "noid_profile",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} INFO anaconda:anaconda: core\\.configuration\\.anaconda: Load the 'noid-privacy-workstation' profile configuration\\.$",
+      "min_count": 1,
+      "max_count": 1
+    },
+    {
+      "id": "m99_complete",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Runtime:INFO:program:\\[[^]]+\\] \\[Module 99\\] === Module 99: Finalize COMPLETE ===$",
+      "min_count": 1,
+      "max_count": 1
+    },
+    {
+      "id": "anaconda_complete",
+      "rationale": "Anaconda's asynchronous guest logger may reach transport EOF after exact M99 completion without emitting this redundant Boss tail line. When present it must remain exact and unique; the canonical builder separately requires both authoritative host-side livemedia success markers.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Boss:INFO:anaconda\\.modules\\.boss\\.installation:All tasks in the installation queue are done\\. Installation successfully finished\\.$",
+      "min_count": 0,
+      "max_count": 1
+    }
+  ],
+  "allowed_events": [
+    {
+      "id": "installer_dracut_module_traversal_avc",
+      "rationale": "The permissive Fedora installer policy can emit one AVC for every read-only dracut-install or child cp search through the signed kernel module tree. Kernel audit coalescing and the traversed module count are timing/kernel-build dependent, so this exact event has its own power-of-two bound above the complete Fedora 44 kernel 7.1.4-204.fc44 traversal instead of consuming or widening the generic installer-AVC budget.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} NOTICE (?:audit:AVC|kernel:audit: type=1400 audit\\([^)]+\\):).*avc:\\s+denied\\s+\\{ search \\}.*comm=\\\"(?:dracut-install|cp)\\\".*scontext=system_u:system_r:kernel_generic_helper_t:s0.*tcontext=system_u:object_r:modules_object_t:s0.*tclass=dir permissive=1(?:[ ']|$).*$",
+      "min_count": 0,
+      "max_count": 131072
+    },
+    {
+      "id": "installer_permissive_avc",
+      "rationale": "The fixed Fedora netinst runs its installer domain permissively; this class is build-only evidence and never authorizes an enforcing installed-boot denial.",
+      "regex": "^(?!.*avc:\\s+denied\\s+\\{ search \\}.*comm=\\\"(?:dracut-install|cp)\\\".*scontext=system_u:system_r:kernel_generic_helper_t:s0.*tcontext=system_u:object_r:modules_object_t:s0.*tclass=dir permissive=1(?:[ ']|$))[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} NOTICE (?:audit:(?:USER_)?AVC|kernel:audit: type=(?:1107|1400) audit\\([^)]+\\):).*avc:\\s+denied\\s+.*scontext=(?:system_u:(?:system_r:(?:kernel_generic_helper_t|kernel_t|kernel_systemctl_t|load_policy_t|rpm_script_t|setsebool_t)|object_r:kernel_t):s0).*permissive=1(?:[ ']|$).*$",
+      "min_count": 0,
+      "max_count": 5000
+    },
+    {
+      "id": "installer_rsyslog_optional_input_absent",
+      "rationale": "Fedora installer rsyslog declares two optional temporary inputs before their producers exist.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} ERR rsyslogd:imfile: on startup file '/tmp/(?:X\\.log|anaconda-tb-all\\.log)' does not exist but is configured in static file monitor - this may indicate a misconfiguration\\. If the file appears at a later time, it will automatically be processed\\. Reason: No such file or directory \\[v8\\.[0-9.]+-[0-9]+\\.fc44\\]$",
+      "min_count": 0,
+      "max_count": 2
+    },
+    {
+      "id": "optional_kdump_addon_exit",
+      "rationale": "The explicitly disabled optional Kdump add-on exits during module discovery.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} INFO dbus-daemon:Activated service 'org\\.fedoraproject\\.Anaconda\\.Addons\\.Kdump' failed: Process org\\.fedoraproject\\.Anaconda\\.Addons\\.Kdump exited with status 1$",
+      "min_count": 0,
+      "max_count": 1
+    },
+    {
+      "id": "optional_subscription_module_exit",
+      "rationale": "The Fedora-only compose has no RHSM service and the optional Subscription module exits during discovery.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} INFO dbus-daemon:Activated service 'org\\.fedoraproject\\.Anaconda\\.Modules\\.Subscription' failed: Process org\\.fedoraproject\\.Anaconda\\.Modules\\.Subscription exited with status 1$",
+      "min_count": 0,
+      "max_count": 1
+    },
+    {
+      "id": "rhsm_service_probe",
+      "rationale": "The optional Subscription module probes the absent RHSM unit and then explicitly disables itself; bounded asynchronous module-start messages may interleave.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Subscription:DEBUG:program:Return code of systemctl: 1$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Subscription:INFO:program:Running\\.\\.\\. systemctl list-unit-files rhsm\\.service --no-legend$",
+      "context_before_lines": 40,
+      "context_after_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Subscription:DEBUG:anaconda\\.modules\\.subscription\\.initialization:subscription: The required rhsm systemd service is not available\\. The Subscription module won't be started\\.$",
+      "context_after_lines": 40,
+      "min_count": 0,
+      "max_count": 1
+    },
+    {
+      "id": "fcoe_edd_absence_probe",
+      "rationale": "The virtual build disk has no FCoE EDD metadata; bounded asynchronous service messages may interleave, but Anaconda must explicitly classify the exact probe miss as absence.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Storage:DEBUG:program:Return code: 1$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Storage:INFO:program:Running\\.\\.\\. /usr/libexec/fcoe/fcoe_edd\\.sh -i$",
+      "context_before_lines": 20,
+      "context_after_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Storage:INFO:blivet:No FCoE EDD info found: No FCoE boot disk information is found in EDD!$",
+      "context_after_lines": 40,
+      "min_count": 0,
+      "max_count": 1
+    },
+    {
+      "id": "initial_rtc_probe_timeout",
+      "rationale": "The QEMU compose guest exposes no usable RTC tick for Anaconda's initial read probe; target hwclock configuration later succeeds separately.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} DEBUG anaconda:program: Return code of hwclock: 1$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} INFO anaconda:program: hwclock: select\\(\\) to /dev/rtc0 to wait for clock tick timed out$",
+      "context_before_lines": 2,
+      "min_count": 0,
+      "max_count": 1
+    },
+    {
+      "id": "pre_mount_findmnt_probe",
+      "rationale": "Anaconda checks that /mnt/sysroot is not mounted immediately before its explicit bind mount.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Storage:DEBUG:program:Return code of findmnt: 1$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Storage:INFO:program:Running\\.\\.\\. findmnt -rn /mnt/sysroot$",
+      "context_before_lines": 2,
+      "min_count": 0,
+      "max_count": 1
+    },
+    {
+      "id": "initial_setup_absence_probe",
+      "rationale": "NoID Privacy uses GNOME Initial Setup, not the optional initial-setup.service package.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Services:DEBUG:program:Return code of systemctl: 1$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Services:INFO:program:Running\\.\\.\\. systemctl list-unit-files initial-setup\\.service --no-legend --root /mnt/sysroot$",
+      "context_before_lines": 2,
+      "min_count": 0,
+      "max_count": 1
+    },
+    {
+      "id": "legacy_firstboot_absence_message",
+      "rationale": "Anaconda attempts to disable the legacy firstboot unit even when the package is absent.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Services:INFO:program:Failed to disable unit: Unit firstboot\\.service does not exist$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Services:INFO:program:Running\\.\\.\\. systemctl disable firstboot --root /mnt/sysroot$",
+      "context_before_lines": 5,
+      "min_count": 0,
+      "max_count": 2
+    },
+    {
+      "id": "legacy_firstboot_absence_return",
+      "rationale": "Return code paired with the exact legacy firstboot absence probe.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Services:DEBUG:program:Return code of systemctl: 1$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING org\\.fedoraproject\\.Anaconda\\.Modules\\.Services:INFO:program:Running\\.\\.\\. systemctl disable firstboot --root /mnt/sysroot$",
+      "context_before_lines": 8,
+      "min_count": 0,
+      "max_count": 1
+    },
+    {
+      "id": "man_db_unit_absent",
+      "rationale": "Exact Fedora 44 man-db trigger defect already constrained by the structured Anaconda package/scriptlet policy.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} ERR systemctl:Failed to start man-db-cache-update\\.service: Unit man-db-cache-update\\.service not found\\.$",
+      "min_count": 0,
+      "max_count": 3
+    },
+    {
+      "id": "man_db_transient_exit",
+      "rationale": "systemd-run status paired with the exact absent man-db cache unit; bounded permissive-installer audit records may interleave.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} NOTICE systemd:run-p[0-9]+-i[0-9]+\\.service: Main process exited, code=exited, status=5/NOTINSTALLED$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} ERR systemctl:Failed to start man-db-cache-update\\.service: Unit man-db-cache-update\\.service not found\\.$",
+      "context_before_lines": 8,
+      "min_count": 0,
+      "max_count": 3
+    },
+    {
+      "id": "man_db_transient_result",
+      "rationale": "systemd result paired with the exact absent man-db cache unit; bounded permissive-installer audit records may interleave.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING systemd:run-p[0-9]+-i[0-9]+\\.service: Failed with result 'exit-code'\\.$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} ERR systemctl:Failed to start man-db-cache-update\\.service: Unit man-db-cache-update\\.service not found\\.$",
+      "context_before_lines": 8,
+      "min_count": 0,
+      "max_count": 3
+    },
+    {
+      "id": "qemu_reverse_dns_helper_exit",
+      "rationale": "The isolated QEMU user-network address has no reverse DNS record. NetworkManager repeats this exact miss during initial link setup and periodic hostname refreshes, so cardinality follows compose duration. Bind the generic helper exit to the preceding exact 10.0.2.15 files lookup by the same unique helper invocation ID and to the following device-scope result; bounded asynchronous installer messages may interleave, while independently generated monotonic log timestamps are not treated as a shared event key.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} DEBUG NetworkManager:<debug> \\[[^]]+\\] nm-daemon-helper\\[(?P<qemu_reverse_dns_helper>[0-9a-f]+,[0-9]+)\\]: process exited with (?P<qemu_reverse_dns_event>status 3)$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} DEBUG NetworkManager:<debug> \\[[^]]+\\] nm-daemon-helper\\[(?P<qemu_reverse_dns_helper>[0-9a-f]+,[0-9]+)\\]: spawned process with args: resolve-address 10\\.0\\.2\\.15 files$",
+      "context_before_lines": 40,
+      "context_after_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} DEBUG NetworkManager:<debug> \\[[^]]+\\] device\\[[0-9a-f]+\\] \\(enp0s2\\): hostname-from-dns: ipv4 resolver DONE: lookup error for 10\\.0\\.2\\.15: helper process exited with status 3$",
+      "context_after_lines": 8,
+      "correlation_id": "qemu_reverse_dns_pair",
+      "correlation_key_group": "qemu_reverse_dns_event",
+      "min_count": 0,
+      "max_count": 16
+    },
+    {
+      "id": "qemu_reverse_dns_device_result",
+      "rationale": "NetworkManager records the same isolated reverse-DNS miss at device scope. It uses the same reviewed duration budget, must follow the exact helper exit within the bounded event window and must have the same total cardinality; unrelated or one-sided helper failures therefore remain fail-visible without assuming identical per-log-call timestamps.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} DEBUG NetworkManager:<debug> \\[[^]]+\\] device\\[[0-9a-f]+\\] \\(enp0s2\\): hostname-from-dns: ipv4 resolver DONE: lookup error for 10\\.0\\.2\\.15: helper process exited with (?P<qemu_reverse_dns_event>status 3)$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} DEBUG NetworkManager:<debug> \\[[^]]+\\] nm-daemon-helper\\[[0-9a-f]+,[0-9]+\\]: process exited with status 3$",
+      "context_before_lines": 8,
+      "correlation_id": "qemu_reverse_dns_pair",
+      "correlation_key_group": "qemu_reverse_dns_event",
+      "min_count": 0,
+      "max_count": 16
+    },
+    {
+      "id": "anaconda_tmux_shutdown_exit",
+      "rationale": "The installer console exits only after the successful installation marker during shutdown.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} NOTICE systemd:anaconda-tmux@tty1\\.service: Main process exited, code=exited, status=1/FAILURE$",
+      "min_count": 0,
+      "max_count": 1
+    },
+    {
+      "id": "anaconda_tmux_shutdown_result",
+      "rationale": "Result line paired by service identity with the post-success installer-console shutdown; bounded unrelated shutdown messages may interleave.",
+      "regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} WARNING systemd:anaconda-tmux@tty1\\.service: Failed with result 'exit-code'\\.$",
+      "context_before_regex": "^[0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3} NOTICE systemd:anaconda-tmux@tty1\\.service: Main process exited, code=exited, status=1/FAILURE$",
+      "context_before_lines": 8,
+      "min_count": 0,
+      "max_count": 1
+    }
+  ]
+}

@@ -1,0 +1,291 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: Syntax sweep (bash -n)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      # bash is preinstalled on ubuntu-latest — no apt step needed.
+      # Lesson (CI run 26416000409): `sudo apt-get update` hung 6h on
+      # a transient Azure-mirror DNS issue, cancelled at the 6h job timeout.
+      # Dropping the redundant install + adding `timeout-minutes: 10` prevents
+      # the same hang from costing another 6h-equivalent Actions-minutes quota.
+      - name: bash -n on every .ks
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in kickstart/master.ks kickstart/snippets/*.ks; do
+            [ -f "$f" ] || continue
+            if ! bash -n "$f" 2>/dev/null; then
+              echo "::error file=$f::bash -n syntax failure"
+              fail=$((fail + 1))
+            fi
+          done
+          [ "$fail" -eq 0 ]
+
+  tests:
+    name: Semantic tests (tests/run-all.sh)
+    runs-on: ubuntu-latest
+    container: fedora:44
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 10
+    steps:
+      - name: Install Fedora 44 semantic-test prerequisites
+        run: >-
+          dnf install -y git ShellCheck aide acl bubblewrap checkpolicy dconf desktop-file-utils
+          glib2 gvfs jq pykickstart patch policycoreutils python3 python3-audit sudo systemd
+          systemd-udev usbguard usbguard-notifier clang libbpf-devel kernel-headers binutils
+          firewalld NetworkManager wireguard-tools gtk-update-icon-cache cronie unzip
+          pipewire-utils util-linux pciutils openssh-clients nftables iproute
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: noid-privacy-fedora
+          persist-credentials: false
+
+      - name: Read exact M40 auditor source pin
+        id: audit-pin
+        working-directory: noid-privacy-fedora
+        run: |
+          set -euo pipefail
+          AUDIT_COMMIT=$(sed -n \
+            's/^NOID_AUDIT_COMMIT="\([a-f0-9]\{40\}\)"$/\1/p' \
+            kickstart/snippets/40-audit-bundle.ks)
+          [[ "$AUDIT_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          printf 'commit=%s\n' "$AUDIT_COMMIT" >> "$GITHUB_OUTPUT"
+
+      - name: Check out exact M40 auditor source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: NexusOne23/noid-privacy-linux
+          ref: ${{ steps.audit-pin.outputs.commit }}
+          path: noid-privacy-linux
+          persist-credentials: false
+
+      - name: Rebuild pinned LAN-XDP object from audited source
+        working-directory: noid-privacy-fedora
+        run: |
+          set -euo pipefail
+          bash scripts/build-lan-xdp-object.sh --check
+
+      # Run the complete contract against the target Fedora release and its
+      # maintained ShellCheck/pykickstart packages. The runner host still owns
+      # container lifecycle; every script step runs inside this Fedora job.
+      - name: Run all structural tests
+        working-directory: noid-privacy-fedora
+        env:
+          NOID_AUDIT_SRC: ${{ github.workspace }}/noid-privacy-linux/noid-privacy-linux.sh
+        run: |
+          # set +e: the harness invokes bash -e; the suite's exit code is
+          # evaluated manually against the known-gap list below.
+          set -u +e -o pipefail
+          # Full suite; container-capability gaps are tracked in
+          # tests/ci-container-known-gaps.txt and surfaced as warnings.
+          # Any failure OUTSIDE that list fails the job.
+          bash tests/run-all.sh | tee run-all.log
+          suite_rc=${PIPESTATUS[0]}
+          [ "$suite_rc" -eq 0 ] && exit 0
+          mapfile -t failed < <(grep -oE '^FAIL  [0-9a-z-]+' run-all.log | awk '{print $2}' | sort -u)
+          [ "${#failed[@]}" -gt 0 ] || exit "$suite_rc"
+          unexpected=0
+          for name in "${failed[@]}"; do
+            if grep -qFx "$name" tests/ci-container-known-gaps.txt; then
+              echo "::warning::known container-capability gap (not run-validated in CI): $name"
+            else
+              echo "::error::unexpected test failure outside the known-gap list: $name"
+              unexpected=1
+            fi
+          done
+          exit "$unexpected"
+
+  shellcheck:
+    name: shellcheck on tests/ + scripts/ + branding/icons/
+    runs-on: ubuntu-latest
+    # Same Fedora 44 toolchain as the semantic job and the development host:
+    # Ubuntu's older shellcheck release emits version-divergent codes
+    # (SC2218/SC2119 false positives on forward-defined fixtures) that the
+    # platform's own ShellCheck does not.
+    container: fedora:44
+    timeout-minutes: 10
+    steps:
+      - name: Install Fedora 44 ShellCheck
+        run: dnf install -y -q ShellCheck git
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: shellcheck
+        run: |
+          set -euo pipefail
+          # Originally scoped to tests/ only.
+          # Extended to scripts/, scripts/lib/, scripts/anaconda-patch/,
+          # branding/icons/, tests/pre-ship/, tests/smoke/ — those carry release-relevant
+          # build/orchestration logic. Suppressions match tests/01-shellcheck.sh.
+          fail=0
+          for dir in tests tests/pre-ship tests/smoke scripts scripts/lib scripts/anaconda-patch branding/icons; do
+            [ -d "$dir" ] || continue
+            for f in "$dir"/*.sh; do
+              [ -f "$f" ] || continue
+              if ! shellcheck --shell=bash \
+                    --exclude=SC1091,SC2016,SC2012,SC2015 \
+                    "$f"; then
+                echo "::warning file=$f::shellcheck issues"
+                fail=$((fail + 1))
+              fi
+            done
+          done
+          [ "$fail" -eq 0 ]
+
+  pykickstart:
+    name: pykickstart validation
+    runs-on: ubuntu-latest
+    container: fedora:44
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pykickstart
+        run: dnf install -y pykickstart
+
+      - name: ksvalidator
+        run: |
+          set -euo pipefail
+          # Snippets are %post/%packages fragments — NOT standalone kickstarts,
+          # so validating each individually always fails. Flatten via master.ks
+          # (resolves %include) and validate the complete kickstart instead.
+          ksflatten -c kickstart/master.ks -o /tmp/master-flat.ks
+          if ! ksvalidator -v F44 /tmp/master-flat.ks; then
+            echo "::error::pykickstart validation failed (flattened master.ks)"
+            exit 1
+          fi
+
+  pii-sweep:
+    name: PII / private-data sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: No host-specific PII in public files
+        run: |
+          set -euo pipefail
+          # This cannot infer every possible name/e-mail from syntax. Its
+          # enforceable scope is Python caches, PNG metadata, personal home
+          # paths and accidental MAC/machine-id material; review is still
+          # required for other PII classes. Keep the implementation and its
+          # positive/negative self-tests in one canonical script.
+          bash scripts/pii-sweep.sh
+
+  supply-chain-verify:
+    name: Supply-chain SHA re-verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Extract pinned SHAs
+        id: pins
+        run: |
+          set -euo pipefail
+          # arkenfox absorbed — no external commit pin needed.
+          # uBO and DKIM Verifier remain external XPI downloads with SHA pins.
+          UBO_VERSION=$(grep -oE 'UBO_VERSION="[0-9.]+"' kickstart/snippets/16-firefox.ks | head -1 | cut -d'"' -f2)
+          UBO_SHA=$(grep -oE 'UBO_SHA256="[a-f0-9]+"' kickstart/snippets/16-firefox.ks | head -1 | cut -d'"' -f2)
+          DKIM_VERSION=$(grep -oE 'DKIM_VERIFIER_VERSION="[0-9.]+"' kickstart/snippets/35-thunderbird.ks | head -1 | cut -d'"' -f2)
+          DKIM_SHA=$(grep -oE 'DKIM_VERIFIER_SHA256="[a-f0-9]+"' kickstart/snippets/35-thunderbird.ks | head -1 | cut -d'"' -f2)
+          [[ "$UBO_VERSION" =~ ^[0-9]+([.][0-9]+)+$ ]]
+          [[ "$UBO_SHA" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$DKIM_VERSION" =~ ^[0-9]+([.][0-9]+)+$ ]]
+          [[ "$DKIM_SHA" =~ ^[a-f0-9]{64}$ ]]
+          printf 'UBO_VERSION=%s\n' "$UBO_VERSION" >> "$GITHUB_OUTPUT"
+          printf 'UBO_SHA=%s\n' "$UBO_SHA" >> "$GITHUB_OUTPUT"
+          printf 'DKIM_VERSION=%s\n' "$DKIM_VERSION" >> "$GITHUB_OUTPUT"
+          printf 'DKIM_SHA=%s\n' "$DKIM_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Verify firefox embed blob is in sync with source
+        run: |
+          # Regression: if firefox/noid-firefox-hardening.js changed but M16
+          # embedded blob wasn't regenerated, fail loud.
+          bash scripts/regen-firefox-embed.sh --check
+
+      - name: Verify thunderbird embed blob is in sync with source
+        run: |
+          # Same regression check for M35:
+          # if thunderbird/noid-thunderbird-hardening.js changed but M35
+          # embedded blob wasn't regenerated, fail loud.
+          bash scripts/regen-thunderbird-embed.sh --check
+
+      - name: Verify thunderbird mozilla.cfg is in sync (heredoc <-> standalone)
+        run: |
+          # thunderbird/mozilla.cfg is the source of truth; the generator keeps
+          # the M35 build-authoritative heredoc byte-identical.
+          bash scripts/regen-thunderbird-mozilla-cfg.sh --check
+
+      - name: Verify installed AI-workspace documentation is in sync
+        run: bash scripts/regen-ai-workspace-doc.sh --check
+
+      - name: Verify installed local-AI documentation is in sync
+        run: bash scripts/regen-local-ai-doc.sh --check
+
+      - name: Verify installed WAN-strict documentation is in sync
+        run: bash scripts/regen-wan-strict-doc.sh --check
+
+      - name: Verify branding SHA256SUMS manifest is in sync with branding/
+        run: |
+          # If branding/* asset changed but branding/SHA256SUMS wasn't
+          # regenerated, Module 32 HTTP-fallback verification will fail
+          # at build time. Catch the drift in CI instead.
+          bash scripts/regen-branding-shasums.sh --check
+
+      - name: Verify pinned uBO XPI bytes
+        env:
+          UBO_VERSION: ${{ steps.pins.outputs.UBO_VERSION }}
+          UBO_SHA: ${{ steps.pins.outputs.UBO_SHA }}
+        run: |
+          set -euo pipefail
+          [[ "$UBO_VERSION" =~ ^[0-9]+([.][0-9]+)+$ ]]
+          [[ "$UBO_SHA" =~ ^[a-f0-9]{64}$ ]]
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          url="https://github.com/gorhill/uBlock/releases/download/$UBO_VERSION/uBlock0_$UBO_VERSION.firefox.signed.xpi"
+          curl --proto '=https' --tlsv1.2 --fail --location --silent \
+            --show-error --retry 3 --output "$tmp/uBlock.xpi" "$url"
+          printf '%s  %s\n' "$UBO_SHA" "$tmp/uBlock.xpi" | sha256sum -c -
+
+      - name: Verify pinned DKIM Verifier XPI bytes
+        env:
+          DKIM_VERSION: ${{ steps.pins.outputs.DKIM_VERSION }}
+          DKIM_SHA: ${{ steps.pins.outputs.DKIM_SHA }}
+        run: |
+          set -euo pipefail
+          [[ "$DKIM_VERSION" =~ ^[0-9]+([.][0-9]+)+$ ]]
+          [[ "$DKIM_SHA" =~ ^[a-f0-9]{64}$ ]]
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          url="https://github.com/lieser/dkim_verifier/releases/download/v$DKIM_VERSION/dkim_verifier-$DKIM_VERSION.xpi"
+          curl --proto '=https' --tlsv1.2 --fail --location --silent \
+            --show-error --retry 3 --output "$tmp/dkim-verifier.xpi" "$url"
+          printf '%s  %s\n' "$DKIM_SHA" "$tmp/dkim-verifier.xpi" | sha256sum -c -

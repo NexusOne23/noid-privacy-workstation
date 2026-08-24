@@ -1,0 +1,10 @@
+# GitHub Linguist overrides
+#
+# The .ks extension is shared with KerboScript (Kerbal Space Program kOS), so
+# Linguist misdetects Anaconda kickstart files. Force the Kickstart language and
+# make it count in the language statistics (Kickstart is a "data" language, which
+# is not detectable by default).
+*.ks linguist-language=Kickstart linguist-detectable
+
+# Unified-diff blank context lines contain one required literal marker space.
+overrides/lorax/*.patch whitespace=-blank-at-eol

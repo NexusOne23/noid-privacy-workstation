@@ -1,0 +1,202 @@
+# NoID Privacy Workstation — .gitignore
+#
+# Rationale: keep repo lean + prevent accidental commits of secrets,
+# build artifacts, host-specific data, and large binaries.
+# GitHub.com warns above 50 MiB and blocks regular Git-repository files above
+# 100 MiB. Release assets are a separate surface and must each be under 2 GiB.
+
+# ============================================================
+# Build artifacts + large binaries
+# ============================================================
+
+# Fedora live-ISO base images (10+ GB each) — download via build script,
+# do NOT commit. Use `curl` + SHA256 verify in docs/build.md instead.
+image/*.iso
+image/*.img
+image/*.qcow2
+image/*.raw
+image/*.vmdk
+
+# Build output (livemedia-creator working directory + final ISO)
+*.log
+build/
+output/
+build-output/
+build-archive/
+*.iso
+*.img
+*.iso.sha256
+*.iso.asc
+*.iso.sig
+SHA256SUMS
+SHA256SUMS.asc
+BUILD-ATTESTATION.txt
+vm-test-signoff.txt
+
+# Kickstart temp files
+*.ks.bak
+*.ks.orig
+*.ks.bak-*
+
+# Per-file backups (snapshots before refactors)
+*.bak-*
+.bak-*
+
+# ============================================================
+# Secrets + credentials (MUST never leak)
+# ============================================================
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# SSH keys
+id_rsa
+id_ed25519
+id_ecdsa
+id_dsa
+*.pem
+*.key
+authorized_keys
+known_hosts
+
+# GPG keys
+*.gpg
+*.asc
+!docs/*.asc
+!release/*.asc
+secring.*
+pubring.*
+trustdb.gpg
+
+# LUKS headers + recovery keys (CRITICAL — never commit)
+luks-header-*.bin
+luks-header-*.img
+*-recovery.key
+*-recovery.txt
+luks-backup-*
+
+# AWS/cloud credentials
+.aws/
+.gcp/
+.azure/
+credentials
+credentials.json
+
+# Passwords + tokens
+*password*
+*passwd*
+!etc/pam.d/system-auth
+!etc/security/faillock.conf
+*.token
+.netrc
+
+# ============================================================
+# Host-specific data (private info — sanitize before commit)
+# ============================================================
+
+# Host audit dumps (raw captures — contain MACs, UUIDs, VPN keys,
+# hostnames, installed-package histories, kernel versions of a specific
+# reference host). Kept locally for author's build reference, NOT shipped.
+discovery/reference/
+discovery/*.txt
+discovery/kspp-live-audit.json
+
+# Note: the discovery/ directory was retired 2026-05-12. Per-module design
+# rationale is retained in each snippet's header/body and its history in Git.
+# The patterns above remain as a defensive guard in case host-audit dumps land
+# under discovery/ again.
+
+# Backups of live /etc configs
+etc-backup-*/
+configs-snapshot-*/
+backups/
+
+# Developer continuation notes (session context for Claude Code).
+# Contains author-specific context + chat history. NOT part of public repo.
+CONTINUE.md
+.claude/
+.claude-*
+
+
+# ============================================================
+# Editor + OS artifacts
+# ============================================================
+
+# Editor swap + backup files
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+.vscode/
+.idea/
+*.sublime-*
+
+# macOS/Linux filesystem noise
+.DS_Store
+.Trash-*
+Thumbs.db
+desktop.ini
+*.tmp
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Shell history / caches
+.bash_history
+.zsh_history
+.sh_history
+
+# ============================================================
+# Test / CI artifacts
+# ============================================================
+
+tests/*.log
+tests/output/
+.shellcheck.cache
+
+# ============================================================
+# Audit FP false-trails (things that should be in repo):
+# explicit negative patterns where above globs are too greedy
+# ============================================================
+
+# Keep these committed even though their patterns could match
+!CONTRIBUTING.md
+!docs/*.md
+!docs/fp-database.md
+!kickstart/snippets/*.ks
+!post-install/*
+!tests/*.sh
+!tests/README.md
+
+# branding/SHA256SUMS is the manifest
+# of all branding asset hashes. Module 32 fetches it at build time
+# and SHA-verifies each branding payload before installing into the
+# image. The generic `SHA256SUMS` rule above (intended for build-output/
+# and build-archive/ ISO checksums) would otherwise hide this.
+!branding/SHA256SUMS
+
+# Build artifacts (regenerable from firefox/*.js via scripts/regen-firefox-embed.sh)
+firefox/.noid-firefox-hardening.js.gz.b64
+
+# Build/install logs that accumulate inside kickstart/snippets/ during build
+# (audit 2026-05-01). Source of truth lives in virt-install.log
+# at repo root or under build-output/. Snippet-dir copies are stale by
+# definition and should be cleaned between builds.
+kickstart/snippets/livemedia.log
+kickstart/snippets/virt-install.log
+kickstart/snippets/program.log
+kickstart/snippets/*.log
+
+# Test scratch trees. Several structural tests place their working directory
+# inside the checkout on purpose, so the extracted payloads share the
+# repository filesystem. Untracked is not enough: a `git add -A` during a
+# concurrent run committed 28 such files once, so the pattern is ignored and
+# tests/00-compose-sources.sh additionally refuses to let one become tracked.
+.test-*/

@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# NoID Privacy modification notice: shutdown-drain behavior changed
+# 2026-07-15 and refined 2026-07-17; original Red Hat notices remain in
+# pylorax/monitor.py.
+diff --git a/pylorax/monitor.py b/pylorax/monitor.py
+index 3be37ff..f17454b 100644
+--- a/pylorax/monitor.py
++++ b/pylorax/monitor.py
+@@ -76,12 +76,22 @@ class LogRequestHandler(socketserver.BaseRequestHandler):
+         """
+         log.info("Processing logs from %s", self.client_address)
+         data = b""
++        draining = False
+         while True:
+-            if self.server.kill:
+-                break
++            # LogMonitor.shutdown() sets kill before joining this handler.
++            # Do not discard bytes already queued on the virtio-log socket:
++            # switch to a bounded five-second idle drain and stop only at
++            # EOF/idle. The build VM has already exited, so this is only a
++            # ceiling for delayed delivery of its final queued records.
++            if self.server.kill and not draining:
++                draining = True
++                self.request.settimeout(5.0)
+-
++
+             try:
+-                data += self.request.recv(4096)
++                chunk = self.request.recv(4096)
++                if not chunk:
++                    break
++                data += chunk
+                 for line in data.splitlines(keepends=True):
+                     if line.endswith(b"\n"):
+                         # Ignore invalid UTF8 inside lines
+@@ -95,11 +103,26 @@ class LogRequestHandler(socketserver.BaseRequestHandler):
+                         data = line
+                         break
++                if len(data) > 1024 * 1024:
++                    self.server.log_error = True
++                    self.server.error_line = "virtio log record exceeds 1 MiB safety bound"
++                    log.error(self.server.error_line)
++                    break
+             except socket.timeout:
+-                pass
++                if draining:
++                    break
+             except Exception as e:       # pylint: disable=broad-except
+                 log.info("log processing killed by exception: %s", e)
+                 break
+-
++
++        # Anaconda's final error can be the last, unterminated record. Treat it
++        # exactly like a complete line instead of silently dropping it.
++        if data:
++            final_line = str(data, "utf8", "ignore")
++            self.iserror(final_line)
++            if self.fp:
++                self.fp.write(final_line)
++                self.fp.flush()
++
+     def finish(self):
+         log.info("Shutting down log processing")
+         if self.fp:
