@@ -1,0 +1,366 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# NoID Privacy modification notice: compose-time Live required-space manifest
+# added 2026-07-27; original Red Hat notices remain in pylorax/creator.py.
+diff --git a/pylorax/creator.py b/pylorax/creator.py
+index d2a7b2f..298c5ee 100644
+--- a/pylorax/creator.py
++++ b/pylorax/creator.py
+@@ -54,5 +54,347 @@ DRACUT_DEFAULT = ["--xz", "--add", "livenet dmsquash-live dmsquash-live-n
+ RUNTIME = "images/install.img"
+-
++
++NOID_LIVE_PROJECT = "NoID Privacy Workstation"
++NOID_REQUIRED_SPACE_PARTS = (
++    "boot",
++    "loader",
++    "noid-privacy",
++    "live-required-space-v1",
++)
++NOID_LIVEINST_UPDATE_PARTS = (
++    "boot",
++    "loader",
++    "noid-privacy",
++    "liveinst-updates.img",
++)
++NOID_REQUIRED_SPACE_MAGIC = b"NOID_LIVE_REQUIRED_SPACE_V1"
++NOID_REQUIRED_SPACE_HEADROOM = 64 * 1024 * 1024
++NOID_REQUIRED_SPACE_MINIMUM = 1024 * 1024 * 1024
++NOID_REQUIRED_SPACE_MAXIMUM = (1 << 63) - 1
++NOID_REQUIRED_UID = 0
++NOID_REQUIRED_GID = 0
++NOID_ROOTFS_ABSENT_PARTS = (
++    ("etc", "brlapi.key"),
++    ("etc", "nvme", "hostid"),
++    ("etc", "nvme", "hostnqn"),
++    ("root", "anaconda-ks.cfg"),
++    ("root", "original-ks.cfg"),
++    ("var", "lib", "noid-privacy", "host-identity-installed.done"),
++    ("var", "lib", "systemd", "random-seed"),
++)
++NOID_ROOTFS_EMPTY_DIRECTORY_PARTS = (
++    ("etc", "NetworkManager", "system-connections"),
++    ("var", "lib", "NetworkManager"),
++    ("var", "lib", "chrony"),
++    ("var", "log", "journal"),
++)
++NOID_ANACONDA_BASE_SHA256 = (
++    b"0dbcdeccf8d9ee0a1e36700b32adf3d0ef9eef7b9ea310386c60996439c946b6"
++)
++
++
++def _noid_required_space_payload(required_space):
++    """Return the fixed-length, version-bound manifest payload."""
++    if not NOID_REQUIRED_SPACE_MINIMUM <= required_space <= NOID_REQUIRED_SPACE_MAXIMUM:
++        raise RuntimeError("NoID Live required-space value is outside the closed range")
++    return (
++        NOID_REQUIRED_SPACE_MAGIC
++        + b"\nbytes="
++        + ("%020d" % required_space).encode("ascii")
++        + b"\nheadroom="
++        + str(NOID_REQUIRED_SPACE_HEADROOM).encode("ascii")
++        + b"\nanaconda_base_sha256="
++        + NOID_ANACONDA_BASE_SHA256
++        + b"\n"
++    )
++
++
++def _noid_validate_parent_chain(root, parts):
++    """Reject symlinked, writable or foreign-owned image path components."""
++    if not os.path.isabs(root):
++        raise RuntimeError("NoID Live compose root is not absolute")
++    root_metadata = os.lstat(root)
++    if root_metadata.st_mode & 0o170000 != 0o040000:
++        raise RuntimeError("NoID Live compose root is not a real directory")
++    if root_metadata.st_uid != NOID_REQUIRED_UID or root_metadata.st_gid != NOID_REQUIRED_GID:
++        raise RuntimeError("NoID Live compose root ownership differs")
++    if root_metadata.st_mode & 0o022:
++        raise RuntimeError("NoID Live compose root is group/other-writable")
++    current = root
++    for component in parts:
++        current = os.path.join(current, component)
++        metadata = os.lstat(current)
++        if metadata.st_mode & 0o170000 != 0o040000:
++            raise RuntimeError("NoID Live compose path is not a real directory: %s" % current)
++        if metadata.st_uid != NOID_REQUIRED_UID or metadata.st_gid != NOID_REQUIRED_GID:
++            raise RuntimeError("NoID Live compose directory ownership differs: %s" % current)
++        if metadata.st_mode & 0o022:
++            raise RuntimeError("NoID Live compose directory is group/other-writable: %s" % current)
++    return current
++
++
++def _noid_validate_regular_input(root, parts, expected_mode):
++    """Return a closed, trusted regular-file input path."""
++    parent = _noid_validate_parent_chain(root, parts[:-1])
++    path = os.path.join(parent, parts[-1])
++    descriptor = os.open(
++        path,
++        os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW,
++    )
++    try:
++        metadata = os.fstat(descriptor)
++        if metadata.st_mode & 0o170000 != 0o100000 or metadata.st_nlink != 1:
++            raise RuntimeError("NoID Live compose input is not one regular inode: %s" % path)
++        if metadata.st_uid != NOID_REQUIRED_UID or metadata.st_gid != NOID_REQUIRED_GID:
++            raise RuntimeError("NoID Live compose input ownership differs: %s" % path)
++        if (metadata.st_mode & 0o7777) != expected_mode:
++            raise RuntimeError("NoID Live compose input mode differs: %s" % path)
++    finally:
++        os.close(descriptor)
++    return path
++
++
++def _noid_write_all(descriptor, payload):
++    """Write a complete small payload without accepting a short write."""
++    offset = 0
++    while offset < len(payload):
++        written = os.write(descriptor, payload[offset:])
++        if written <= 0:
++            raise OSError("short write while publishing NoID Live manifest")
++        offset += written
++
++
++def _noid_validate_rootfs_path(root, parts, final_directory=False):
++    """Resolve one exact image path without accepting symlinked parents."""
++    if not parts or not os.path.isabs(root):
++        raise RuntimeError("NoID Live rootfs scrub path is invalid")
++    root_metadata = os.lstat(root)
++    if root_metadata.st_mode & 0o170000 != 0o040000:
++        raise RuntimeError("NoID Live rootfs scrub root is not a real directory")
++    if root_metadata.st_uid != NOID_REQUIRED_UID or root_metadata.st_gid != NOID_REQUIRED_GID:
++        raise RuntimeError("NoID Live rootfs scrub root ownership differs")
++    if root_metadata.st_mode & 0o022:
++        raise RuntimeError("NoID Live rootfs scrub root is group/other-writable")
++    current = root
++    for index, component in enumerate(parts):
++        if not component or component in (".", "..") or os.path.sep in component:
++            raise RuntimeError("NoID Live rootfs scrub component is invalid")
++        current = os.path.join(current, component)
++        if index == len(parts) - 1 and not final_directory:
++            break
++        metadata = os.lstat(current)
++        if metadata.st_mode & 0o170000 != 0o040000:
++            raise RuntimeError("NoID Live rootfs scrub parent is not a real directory")
++        if index < len(parts) - 1 and metadata.st_uid != NOID_REQUIRED_UID:
++            raise RuntimeError("NoID Live rootfs scrub parent is not root-owned")
++        if metadata.st_mode & 0o022:
++            raise RuntimeError("NoID Live rootfs scrub directory is group/other-writable")
++    return current
++
++
++def _noid_fsync_directory(path):
++    descriptor = os.open(
++        path,
++        os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW,
++    )
++    try:
++        os.fsync(descriptor)
++    finally:
++        os.close(descriptor)
++
++
++def _noid_replace_empty_machine_id(mount_dir):
++    """Atomically publish systemd's canonical empty golden-image machine-id."""
++    parent = _noid_validate_rootfs_path(mount_dir, ("etc",), True)
++    target = os.path.join(parent, "machine-id")
++    if os.path.lexists(target):
++        metadata = os.lstat(target)
++        if metadata.st_mode & 0o170000 != 0o100000:
++            raise RuntimeError("NoID Live machine-id target is not a regular file")
++    descriptor, candidate = tempfile.mkstemp(prefix=".machine-id.", dir=parent)
++    try:
++        os.fchmod(descriptor, 0o444)
++        os.fchown(descriptor, NOID_REQUIRED_UID, NOID_REQUIRED_GID)
++        os.fsync(descriptor)
++        os.close(descriptor)
++        descriptor = -1
++        os.replace(candidate, target)
++        _noid_fsync_directory(parent)
++    finally:
++        if descriptor >= 0:
++            os.close(descriptor)
++        if os.path.lexists(candidate):
++            os.unlink(candidate)
++
++
++def _noid_remove_exact_rootfs_path(mount_dir, parts):
++    """Remove one exact non-directory host-state artifact when present."""
++    path = _noid_validate_rootfs_path(mount_dir, parts)
++    if not os.path.lexists(path):
++        return
++    metadata = os.lstat(path)
++    if metadata.st_mode & 0o170000 == 0o040000:
++        raise RuntimeError("NoID Live rootfs scrub target unexpectedly is a directory")
++    os.unlink(path)
++    _noid_fsync_directory(os.path.dirname(path))
++
++
++def _noid_clear_directory(mount_dir, parts):
++    """Remove every entry below one exact persistent-state directory."""
++    path = _noid_validate_rootfs_path(mount_dir, parts, True)
++    for entry in os.scandir(path):
++        metadata = entry.stat(follow_symlinks=False)
++        if metadata.st_mode & 0o170000 == 0o040000:
++            shutil.rmtree(entry.path)
++        else:
++            os.unlink(entry.path)
++    _noid_fsync_directory(path)
++
++
++def _noid_remove_log_payloads(path, device):
++    """Remove log payloads while retaining the image's reviewed directory ACLs."""
++    for entry in os.scandir(path):
++        metadata = entry.stat(follow_symlinks=False)
++        if metadata.st_mode & 0o170000 == 0o040000:
++            if metadata.st_dev != device:
++                raise RuntimeError("NoID Live log scrub encountered another filesystem")
++            _noid_remove_log_payloads(entry.path, device)
++        else:
++            os.unlink(entry.path)
++    _noid_fsync_directory(path)
++
++
++def _noid_scrub_live_rootfs(mount_dir):
++    """Retire compose identity, secrets, network state and logs before SquashFS."""
++    _noid_replace_empty_machine_id(mount_dir)
++    for parts in NOID_ROOTFS_ABSENT_PARTS:
++        _noid_remove_exact_rootfs_path(mount_dir, parts)
++    log_path = _noid_validate_rootfs_path(mount_dir, ("var", "log"), True)
++    _noid_remove_log_payloads(log_path, os.lstat(log_path).st_dev)
++    for parts in NOID_ROOTFS_EMPTY_DIRECTORY_PARTS:
++        _noid_clear_directory(mount_dir, parts)
++    log.info("Retired NoID Live compose identity, secrets, network state and logs")
++
++
++def _noid_measure_live_required_space(mount_dir):
++    """Run the exact Anaconda 44.30 Live-source size calculation."""
++    exclude_patterns = [
++        "/dev/",
++        "/proc/",
++        "/tmp/*",
++        "/sys/",
++        "/run/",
++        "/boot/*rescue*",
++        "/boot/loader/",
++        "/boot/efi/loader/",
++        "/etc/machine-id",
++        "/etc/machine-info",
++    ]
++    command = ["/usr/bin/du", "--bytes", "--summarize", mount_dir]
++    for pattern in exclude_patterns:
++        command.extend(["--exclude", "%s%s" % (mount_dir, pattern)])
++    environment = os.environ.copy()
++    environment["LC_ALL"] = "C"
++    measured = subprocess.run(
++        command,
++        check=False,
++        stdout=subprocess.PIPE,
++        stderr=subprocess.PIPE,
++        text=True,
++        env=environment,
++    )
++    output = measured.stdout.rstrip("\n")
++    size, separator, reported_path = output.partition("\t")
++    if measured.returncode != 0 or not separator or reported_path != mount_dir \
++            or not size.isdigit() or "\n" in output:
++        detail = measured.stderr.strip() or "invalid du output"
++        raise RuntimeError("NoID Live required-space measurement failed: %s" % detail)
++    return int(size)
++
++
++def _noid_prepare_live_required_space(mount_dir):
++    """Scrub the final rootfs, then publish its strict size manifest."""
++    _noid_scrub_live_rootfs(mount_dir)
++    _noid_validate_regular_input(
++        mount_dir,
++        NOID_LIVEINST_UPDATE_PARTS,
++        0o644,
++    )
++    manifest_dir = _noid_validate_parent_chain(
++        mount_dir,
++        NOID_REQUIRED_SPACE_PARTS[:-1],
++    )
++    manifest_path = os.path.join(manifest_dir, NOID_REQUIRED_SPACE_PARTS[-1])
++    if os.path.lexists(manifest_path):
++        raise RuntimeError("NoID Live required-space manifest already exists")
++
++    # The invalid zero placeholder has exactly the final payload length.
++    # Keep inode count and byte length stable across both measurements. This
++    # proves a fixed point even where GNU du accounts the /boot/loader tree
++    # despite Anaconda 44.30's trailing-slash exclude argument.
++    placeholder = (
++        NOID_REQUIRED_SPACE_MAGIC
++        + b"\nbytes=00000000000000000000"
++        + b"\nheadroom="
++        + str(NOID_REQUIRED_SPACE_HEADROOM).encode("ascii")
++        + b"\nanaconda_base_sha256="
++        + NOID_ANACONDA_BASE_SHA256
++        + b"\n"
++    )
++    descriptor = os.open(
++        manifest_path,
++        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW,
++        0o600,
++    )
++    try:
++        os.fchmod(descriptor, 0o644)
++        os.fchown(descriptor, NOID_REQUIRED_UID, NOID_REQUIRED_GID)
++        _noid_write_all(descriptor, placeholder)
++        os.fsync(descriptor)
++    finally:
++        os.close(descriptor)
++
++    measured_space = _noid_measure_live_required_space(mount_dir)
++    required_space = measured_space + NOID_REQUIRED_SPACE_HEADROOM
++    payload = _noid_required_space_payload(required_space)
++    if len(payload) != len(placeholder):
++        raise RuntimeError("NoID Live required-space manifest length changed")
++
++    candidate_descriptor, candidate_path = tempfile.mkstemp(
++        prefix=".live-required-space.",
++        dir=manifest_dir,
++    )
++    try:
++        os.fchmod(candidate_descriptor, 0o644)
++        os.fchown(candidate_descriptor, NOID_REQUIRED_UID, NOID_REQUIRED_GID)
++        _noid_write_all(candidate_descriptor, payload)
++        os.fsync(candidate_descriptor)
++        os.close(candidate_descriptor)
++        candidate_descriptor = -1
++        os.replace(candidate_path, manifest_path)
++        directory_descriptor = os.open(
++            manifest_dir,
++            os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW,
++        )
++        try:
++            os.fsync(directory_descriptor)
++        finally:
++            os.close(directory_descriptor)
++    finally:
++        if candidate_descriptor >= 0:
++            os.close(candidate_descriptor)
++        if os.path.lexists(candidate_path):
++            os.unlink(candidate_path)
++
++    verified_space = _noid_measure_live_required_space(mount_dir)
++    if verified_space != measured_space:
++        raise RuntimeError("NoID Live required-space measurement is not a fixed point")
++    log.info(
++        "Published NoID Live required-space manifest: %d bytes + %d bytes headroom",
++        measured_space,
++        NOID_REQUIRED_SPACE_HEADROOM,
++    )
++
++
+ class FakeDNF(object):
+     """
+     A minimal DNF object suitable for passing to RuntimeBuilder
+@@ -211,6 +425,9 @@ def make_runtime(opts, mount_dir, work_dir, size=None):
+     :returns: rc of squashfs creation
+     :rtype: int
+     """
++    if opts.project == NOID_LIVE_PROJECT:
++        _noid_prepare_live_required_space(mount_dir)
++
+     kernel_arch = get_arch(mount_dir)
+ 
+     # Fake arch with only basearch set

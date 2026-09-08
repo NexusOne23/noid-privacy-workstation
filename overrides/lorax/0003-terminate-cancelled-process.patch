@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# NoID Privacy modification notice: cancelled-child termination and bounded
+# reap behavior added 2026-07-27 and refined 2026-07-29; original Red Hat notices remain in
+# pylorax/executils.py.
+--- a/pylorax/executils.py
++++ b/pylorax/executils.py
+@@ -159,12 +159,26 @@ def _run_program(argv, root='/', stdin=None, stdout=None, env_prune=None, log_o
+         output_string = None
+         err_string = None
+         if callback:
+-            while callback(proc) and proc.poll() is None:
++            while True:
++                if proc.poll() is not None:
++                    (output_string, err_string) = proc.communicate()
++                    break
++                if not callback(proc):
++                    try:
++                        proc.terminate()
++                    except ProcessLookupError:
++                        pass
++                    try:
++                        (output_string, err_string) = proc.communicate(timeout=10)
++                    except TimeoutExpired:
++                        proc.kill()
++                        (output_string, err_string) = proc.communicate()
++                    break
+                 try:
+                     (output_string, err_string) = proc.communicate(timeout=1)
+                     break
+                 except TimeoutExpired:
+                     pass
+         else:
+             (output_string, err_string) = proc.communicate()
+         if output_string:
