@@ -1,0 +1,7 @@
+hostname	operator	country	operator_status	operator_source	reviewed_on
+ptbtime1.ptb.de	PTB	DE	public-service	https://www.ptb.de/cms/en/ptb/fachabteilungen/abt9/gruppe-95/ref-952/time-synchronization-of-computers-using-the-network-time-protocol-ntp.html	2026-08-14
+ptbtime4.ptb.de	PTB	DE	public-service	https://www.ptb.de/cms/en/ptb/fachabteilungen/abt9/gruppe-95/ref-952/time-synchronization-of-computers-using-the-network-time-protocol-ntp.html	2026-08-14
+lul1.nts.netnod.se	Netnod	SE	public-service	https://tech.netnod.se/en/time-services/NTS	2026-08-14
+mmo1.nts.netnod.se	Netnod	SE	public-service	https://tech.netnod.se/en/time-services/NTS	2026-08-14
+ntppool1.time.nl	SIDN-Labs	NL	production	https://nts.time.nl/	2026-08-14
+ntppool2.time.nl	SIDN-Labs	NL	production	https://nts.time.nl/	2026-08-14
