@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# NoID Privacy modification notice: Live boot-menu default and timeout changed;
+# notice recorded 2026-08-01. Original Red Hat notices remain in
+# lorax-templates-generic live/config_files/x86/grub2-{bios,efi}.cfg.
+diff --git a/live/config_files/x86/grub2-bios.cfg b/live/config_files/x86/grub2-bios.cfg
+--- a/live/config_files/x86/grub2-bios.cfg
++++ b/live/config_files/x86/grub2-bios.cfg
+@@ -1,4 +1,4 @@
+-set default="1"
++set default="0"
+ 
+ function load_video {
+   insmod all_video
+@@ -11,7 +11,7 @@ insmod part_gpt
+ insmod ext2
+ insmod chain
+ 
+-set timeout=60
++set timeout=3
+ ### END /etc/grub.d/00_header ###
+ 
+ search --no-floppy --set=root -l '@ISOLABEL@'
+diff --git a/live/config_files/x86/grub2-efi.cfg b/live/config_files/x86/grub2-efi.cfg
+--- a/live/config_files/x86/grub2-efi.cfg
++++ b/live/config_files/x86/grub2-efi.cfg
+@@ -1,4 +1,4 @@
+-set default="1"
++set default="0"
+ 
+ function load_video {
+   insmod efi_gop
+@@ -14,7 +14,7 @@ insmod gzio
+ insmod part_gpt
+ insmod ext2
+ 
+-set timeout=60
++set timeout=3
+ ### END /etc/grub.d/00_header ###
+ 
+ search --no-floppy --set=root -l '@ISOLABEL@'
