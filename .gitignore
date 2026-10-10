@@ -1,0 +1,194 @@
+# NoID Privacy Workstation — .gitignore
+#
+# Rationale: keep repo lean + prevent accidental commits of secrets,
+# build artifacts, host-specific data, and large binaries.
+# GitHub.com warns above 50 MiB and blocks regular Git-repository files above
+# 100 MiB. Release assets are a separate surface and must each be under 2 GiB.
+
+# ============================================================
+# Build artifacts + large binaries
+# ============================================================
+
+# Fedora base netinst ISO (about 1.2 GB): placed manually under /var/tmp or
+# ~/Downloads and authenticated by scripts/verify-fedora-base-iso.sh; do NOT
+# commit it.
+image/*.iso
+image/*.img
+image/*.qcow2
+image/*.raw
+image/*.vmdk
+
+# Build output (livemedia-creator working directory + final ISO)
+*.log
+build/
+output/
+build-output/
+build-archive/
+*.iso
+*.img
+*.iso.sha256
+*.iso.asc
+*.iso.sig
+SHA256SUMS
+SHA256SUMS.asc
+BUILD-ATTESTATION.txt
+vm-test-signoff.txt
+
+# Kickstart temp files
+*.ks.bak
+*.ks.orig
+*.ks.bak-*
+
+# Per-file backups (snapshots before refactors)
+*.bak-*
+.bak-*
+
+# ============================================================
+# Secrets + credentials (MUST never leak)
+# ============================================================
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# SSH keys
+id_rsa
+id_ed25519
+id_ecdsa
+id_dsa
+*.pem
+*.key
+authorized_keys
+known_hosts
+
+# GPG keys
+*.gpg
+*.asc
+!docs/*.asc
+secring.*
+pubring.*
+trustdb.gpg
+
+# LUKS headers + recovery keys (CRITICAL — never commit)
+luks-header-*.bin
+luks-header-*.img
+*-recovery.key
+*-recovery.txt
+luks-backup-*
+
+# AWS/cloud credentials
+.aws/
+.gcp/
+.azure/
+credentials
+credentials.json
+
+# Passwords + tokens
+*password*
+*passwd*
+*.token
+.netrc
+
+# ============================================================
+# Host-specific data (private info — sanitize before commit)
+# ============================================================
+
+# Host audit dumps (raw captures — contain MACs, UUIDs, VPN keys,
+# hostnames, installed-package histories, kernel versions of a specific
+# reference host). They must never be committed or shipped.
+discovery/reference/
+discovery/*.txt
+discovery/kspp-live-audit.json
+
+# Per-module design rationale lives in each snippet's header/body. The
+# patterns above are a defensive guard against raw host-audit dumps under
+# discovery/.
+
+# Backups of live /etc configs
+etc-backup-*/
+configs-snapshot-*/
+backups/
+
+# Local agent/editor session state. NOT part of the public repo.
+CONTINUE.md
+.claude/
+.claude-*
+
+
+# ============================================================
+# Editor + OS artifacts
+# ============================================================
+
+# Editor swap + backup files
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+.vscode/
+.idea/
+*.sublime-*
+
+# macOS/Linux filesystem noise
+.DS_Store
+.Trash-*
+Thumbs.db
+desktop.ini
+*.tmp
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Shell history / caches
+.bash_history
+.zsh_history
+.sh_history
+
+# ============================================================
+# Test / CI artifacts
+# ============================================================
+
+tests/*.log
+tests/output/
+.shellcheck.cache
+
+# ============================================================
+# Re-include files matched by the broad patterns above:
+# explicit negative patterns where those globs are too greedy
+# ============================================================
+
+# Keep these committed even though their patterns could match
+!CONTRIBUTING.md
+!docs/*.md
+!kickstart/snippets/*.ks
+!tests/*.sh
+!tests/README.md
+
+# branding/SHA256SUMS is the manifest
+# of all branding asset hashes. Module 32 fetches it at build time
+# and SHA-verifies each branding payload before installing into the
+# image. The generic `SHA256SUMS` rule above (intended for build-output/
+# and build-archive/ ISO checksums) would otherwise hide this.
+!branding/SHA256SUMS
+
+# Build logs never belong in kickstart/snippets/: scripts/build-iso.sh keeps
+# livemedia/program/virt-install logs in its private stage directory and
+# copies them to the failure directory. Snippet-dir copies are stale by
+# definition and should be cleaned between builds.
+kickstart/snippets/livemedia.log
+kickstart/snippets/virt-install.log
+kickstart/snippets/program.log
+kickstart/snippets/*.log
+
+# Test scratch trees. Tests create executable scratch directories outside the
+# checkout (tests/lib.sh make_exec_tmpdir). This pattern is a backstop for a
+# checkout-local `.test-*` tree left by an interrupted run: untracked is
+# not enough, because a concurrent `git add -A` could commit it, so the
+# pattern is ignored and tests/00-compose-sources.sh refuses both new in-tree
+# scratch directories and tracked ones.
+.test-*/

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Regenerate the deterministic gzip+base64 Firefox hardening embed in M16.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LIB="$REPO_ROOT/scripts/lib/source-generator.sh"
+# shellcheck source=scripts/lib/source-generator.sh
+. "$LIB"
+SRC=${NOID_FIREFOX_EMBED_SRC:-$REPO_ROOT/firefox/noid-firefox-hardening.js}
+TARGET=${NOID_FIREFOX_EMBED_M16:-$REPO_ROOT/kickstart/snippets/16-firefox.ks}
+OPENING="base64 -d <<'HARDENING_GZ_B64_EOF'"
+CLOSING=HARDENING_GZ_B64_EOF
+
+log() { echo "[regen-firefox-embed] $*"; }
+usage() { echo "Usage: scripts/regen-firefox-embed.sh [--check]"; }
+noid_generator_parse_cli "$@" || { usage >&2; exit 2; }
+[ "$NOID_GENERATOR_MODE" != help ] || { usage; exit 0; }
+noid_generator_require_tools base64 bash cat cmp gzip head wc || exit 2
+noid_generator_require_source "$SRC" "$CLOSING" || exit 2
+noid_generator_marker_pair "$TARGET" "$OPENING" "$CLOSING" || exit 3
+start=$NOID_GENERATOR_START
+end=$NOID_GENERATOR_END
+
+# The comparison payload never needs to live in the checkout; only the
+# publication candidate is created beside the target for an atomic rename.
+noid_generator_install_traps
+noid_generator_new_scratch || exit 4
+fresh=$NOID_GENERATOR_PATH
+gzip -n -c -- "$SRC" | base64 -w 76 > "$fresh"
+if noid_generator_block_matches "$TARGET" "$fresh" "$OPENING" "$CLOSING"; then
+    log "IN SYNC: M16 embed matches the Firefox source"
+    exit 0
+fi
+[ "$NOID_GENERATOR_MODE" != check ] \
+    || { log "DRIFT DETECTED: run scripts/regen-firefox-embed.sh"; exit 1; }
+
+noid_generator_new_candidate "$TARGET" || exit 4
+tmp=$NOID_GENERATOR_PATH
+head -n "$start" "$TARGET" > "$tmp"
+cat "$fresh" >> "$tmp"
+tail -n +"$end" "$TARGET" >> "$tmp"
+bash -n "$tmp" || { log "ERROR: generated candidate is invalid Bash"; exit 4; }
+noid_generator_block_matches "$tmp" "$fresh" "$OPENING" "$CLOSING" \
+    || { log "ERROR: candidate embed differs from deterministic payload"; exit 4; }
+sed -n "$((start + 1)),$((start + $(wc -l < "$fresh")))p" "$tmp" \
+    | base64 -d | gzip -dc | cmp -s - "$SRC" \
+    || { log "ERROR: candidate embed does not decode to the source bytes"; exit 4; }
+noid_generator_publish "$tmp" "$TARGET" || exit 4
+log "OK: M16 embed validated and published atomically"
