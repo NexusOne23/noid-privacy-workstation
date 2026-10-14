@@ -1,0 +1,18 @@
+{
+  "addons": {
+    "dkim_verifier@pl": {
+      "updates": [
+        {
+          "version": "6.3.0",
+          "update_hash": "sha256:5ae95b4d560257b2e5722e1d3824a4031fb74d5d57b790dfc12f76a11dc1501a",
+          "applications": {
+            "gecko": {
+              "strict_min_version": "128.0",
+              "strict_max_version": "*"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

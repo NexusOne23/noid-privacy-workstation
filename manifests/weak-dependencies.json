@@ -1,0 +1,950 @@
+{
+  "schema": 1,
+  "required": [
+    "dnsmasq-langpack",
+    "fuse-overlayfs",
+    "fwupd-plugin-modem-manager",
+    "fwupd-plugin-uefi-capsule-data",
+    "gawk-all-langpacks",
+    "ibus-setup",
+    "ibus-table-chinese-cangjie",
+    "ibus-table-chinese-quick",
+    "intel-mediasdk",
+    "intel-npu-firmware",
+    "intel-vpl-gpu-rt",
+    "kernel-tools",
+    "langpacks-pt_BR",
+    "langpacks-zh_TW",
+    "libcamera",
+    "libcamera-ipa",
+    "libcap-ng-python3",
+    "libheif-ffmpeg",
+    "man-pages-de",
+    "man-pages-es",
+    "man-pages-fr",
+    "man-pages-it",
+    "man-pages-ja",
+    "man-pages-ko",
+    "man-pages-nl",
+    "man-pages-pl",
+    "man-pages-pt_BR",
+    "man-pages-ru",
+    "man-pages-zh-CN",
+    "nm-connection-editor",
+    "ntfs-3g-system-compression",
+    "pipewire-plugin-libcamera",
+    "pkcs11-provider",
+    "python-unversioned-command",
+    "python3-defusedxml",
+    "python3-psutil",
+    "python3-regex",
+    "python3-simpleaudio",
+    "python3-urllib3+socks",
+    "qt5-qttranslations",
+    "qt6-qttranslations",
+    "rocm-smi",
+    "rpm-plugin-audit",
+    "rpm-plugin-systemd-inhibit",
+    "skopeo",
+    "speech-dispatcher-utils",
+    "udisks2-btrfs",
+    "udisks2-lvm2",
+    "zd1211-firmware"
+  ],
+  "exceptions": [
+    {
+      "package": "NetworkManager-vpnc",
+      "relation": "recommends",
+      "expression": "(NetworkManager-vpnc-gnome(x86-64) = 1.4.0-6.fc44 if libnma(x86-64))",
+      "reason": "The GNOME plugin is installed; its epoch-qualified provide differs from this upstream epoch-less recommendation."
+    },
+    {
+      "package": "NetworkManager-vpnc",
+      "relation": "recommends",
+      "expression": "(NetworkManager-vpnc-gnome(x86-64) = 1.4.0-6.fc44 if libnma-gtk4(x86-64))",
+      "reason": "The GNOME plugin is installed; its epoch-qualified provide differs from this upstream epoch-less recommendation."
+    },
+    {
+      "package": "adobe-source-code-pro-fonts",
+      "relation": "suggests",
+      "expression": "font(sourcecodevf)",
+      "reason": "Optional additional font family; the selected desktop font coverage remains available."
+    },
+    {
+      "package": "anaconda-install-env-deps",
+      "relation": "recommends",
+      "expression": "fcoe-utils >= 1.0.12-3.20100323git",
+      "reason": "Optional Fibre Channel or multipath storage support; outside the supported default local-storage configuration."
+    },
+    {
+      "package": "anaconda-install-env-deps",
+      "relation": "recommends",
+      "expression": "kdump-anaconda-addon",
+      "reason": "Optional crash-dump or continuous boot/memory instrumentation; not part of the quiet default system."
+    },
+    {
+      "package": "anaconda-install-env-deps",
+      "relation": "recommends",
+      "expression": "nvme-cli",
+      "reason": "Optional NVMe administration and fabric discovery; local NVMe kernel support does not require this tool."
+    },
+    {
+      "package": "audit",
+      "relation": "recommends",
+      "expression": "initscripts-service",
+      "reason": "Legacy SysV compatibility wrapper; selected services use native systemd units."
+    },
+    {
+      "package": "authselect",
+      "relation": "suggests",
+      "expression": "fprintd-pam",
+      "reason": "Optional biometric or centrally managed login integration; preserve the selected local authentication configuration."
+    },
+    {
+      "package": "authselect",
+      "relation": "suggests",
+      "expression": "oddjob-mkhomedir",
+      "reason": "Optional biometric or centrally managed login integration; preserve the selected local authentication configuration."
+    },
+    {
+      "package": "authselect",
+      "relation": "suggests",
+      "expression": "samba-winbind",
+      "reason": "Optional biometric or centrally managed login integration; preserve the selected local authentication configuration."
+    },
+    {
+      "package": "authselect",
+      "relation": "suggests",
+      "expression": "sssd",
+      "reason": "Optional biometric or centrally managed login integration; preserve the selected local authentication configuration."
+    },
+    {
+      "package": "btrfs-assistant",
+      "relation": "recommends",
+      "expression": "btrfsmaintenance",
+      "reason": "Optional scheduled filesystem maintenance; do not add background maintenance jobs."
+    },
+    {
+      "package": "btrfsmaintenance",
+      "relation": "enhances",
+      "expression": "btrfs-progs",
+      "reason": "Optional scheduled filesystem maintenance; do not add background maintenance jobs."
+    },
+    {
+      "package": "chrony",
+      "relation": "suggests",
+      "expression": "ntp-refclock",
+      "reason": "Optional hardware reference-clock integration; chrony uses the configured authenticated network sources."
+    },
+    {
+      "package": "cockpit-storaged",
+      "relation": "recommends",
+      "expression": "clevis-luks",
+      "reason": "Optional automated LUKS unlocking; preserve the selected interactive encrypted-storage workflow."
+    },
+    {
+      "package": "cockpit-storaged",
+      "relation": "recommends",
+      "expression": "device-mapper-multipath",
+      "reason": "Optional Fibre Channel or multipath storage support; outside the supported default local-storage configuration."
+    },
+    {
+      "package": "cockpit-ws",
+      "relation": "recommends",
+      "expression": "sscg >= 2.3",
+      "reason": "Optional Cockpit self-signed certificate generator; not needed by the default disabled web-console service."
+    },
+    {
+      "package": "cockpit-ws",
+      "relation": "suggests",
+      "expression": "sssd-dbus >= 2.6.2",
+      "reason": "Optional biometric or centrally managed login integration; preserve the selected local authentication configuration."
+    },
+    {
+      "package": "codium",
+      "relation": "recommends",
+      "expression": "socat",
+      "reason": "Optional generic relay utility; no selected VSCodium base function requires it."
+    },
+    {
+      "package": "containers-common-extra",
+      "relation": "recommends",
+      "expression": "composefs",
+      "reason": "Optional alternative container image storage implementation; the selected native storage backend is retained."
+    },
+    {
+      "package": "containers-common-extra",
+      "relation": "recommends",
+      "expression": "qemu-user-static",
+      "reason": "Optional cross-architecture userspace emulation; native x86_64 containers remain supported."
+    },
+    {
+      "package": "containers-common-extra",
+      "relation": "suggests",
+      "expression": "slirp4netns",
+      "reason": "Optional alternative rootless network backend; the selected stack already provides pasta through passt."
+    },
+    {
+      "package": "coreutils-common",
+      "relation": "suggests",
+      "expression": "glibc-doc",
+      "reason": "Optional programming reference documentation; not a runtime dependency."
+    },
+    {
+      "package": "crun",
+      "relation": "recommends",
+      "expression": "criu >= 3.17.1",
+      "reason": "Optional container checkpoint and restore; outside the default container workflow."
+    },
+    {
+      "package": "crun",
+      "relation": "recommends",
+      "expression": "criu-libs",
+      "reason": "Optional container checkpoint and restore; outside the default container workflow."
+    },
+    {
+      "package": "cups",
+      "relation": "recommends",
+      "expression": "cups-browsed",
+      "reason": "Optional printer discovery or driver integration; printing remains an explicit device-specific opt-in."
+    },
+    {
+      "package": "cups",
+      "relation": "recommends",
+      "expression": "cups-filters-driverless",
+      "reason": "Optional printer discovery or driver integration; printing remains an explicit device-specific opt-in."
+    },
+    {
+      "package": "cups",
+      "relation": "recommends",
+      "expression": "ipp-usb",
+      "reason": "Optional printer discovery or driver integration; printing remains an explicit device-specific opt-in."
+    },
+    {
+      "package": "cups",
+      "relation": "recommends",
+      "expression": "nss-mdns",
+      "reason": "Multicast name discovery remains disabled; preserve the configured DNS resolver policy."
+    },
+    {
+      "package": "cups-filters",
+      "relation": "recommends",
+      "expression": "braille-printer-app",
+      "reason": "Optional printer discovery or driver integration; printing remains an explicit device-specific opt-in."
+    },
+    {
+      "package": "curl",
+      "relation": "recommends",
+      "expression": "wcurl",
+      "reason": "Optional curl download wrapper; the curl command and library are already present."
+    },
+    {
+      "package": "dnf5",
+      "relation": "recommends",
+      "expression": "(libdnf5-plugin-expired-pgp-keys if gnupg2)",
+      "reason": "Avoid additional automatic trust-key removal during noninteractive package updates."
+    },
+    {
+      "package": "dracut",
+      "relation": "recommends",
+      "expression": "kpartx",
+      "reason": "Optional Fibre Channel or multipath storage support; outside the supported default local-storage configuration."
+    },
+    {
+      "package": "dracut",
+      "relation": "recommends",
+      "expression": "memstrack",
+      "reason": "Optional crash-dump or continuous boot/memory instrumentation; not part of the quiet default system."
+    },
+    {
+      "package": "edk2-ovmf",
+      "relation": "recommends",
+      "expression": "edk2-shell-x64",
+      "reason": "Optional interactive UEFI shell; not needed by the selected virtual-machine boot path."
+    },
+    {
+      "package": "evince-libs",
+      "relation": "recommends",
+      "expression": "evince-djvu(x86-64) = 48.1-5.fc44",
+      "reason": "Optional Evince backend; the selected Papers viewer supplies its own DjVu backend."
+    },
+    {
+      "package": "exiv2-libs",
+      "relation": "recommends",
+      "expression": "exiv2(x86-64) = 0.28.9-1.fc44",
+      "reason": "Optional metadata command-line frontend; applications already use the installed Exiv2 library."
+    },
+    {
+      "package": "fedora-chromium-config",
+      "relation": "recommends",
+      "expression": "(fedora-chromium-config-gnome if gnome-shell)",
+      "reason": "Chromium-specific integration; the selected default browser is Firefox."
+    },
+    {
+      "package": "firewalld",
+      "relation": "recommends",
+      "expression": "ipset",
+      "reason": "Legacy ipset command-line backend; firewalld uses its native nftables backend."
+    },
+    {
+      "package": "flatpak",
+      "relation": "recommends",
+      "expression": "p11-kit-server",
+      "reason": "Optional PKCS#11 forwarding server; smart-card forwarding is not enabled by default."
+    },
+    {
+      "package": "fwupd",
+      "relation": "recommends",
+      "expression": "passim",
+      "reason": "Local-network firmware cache sharing remains disabled."
+    },
+    {
+      "package": "gdb",
+      "relation": "recommends",
+      "expression": "dnf-command(debuginfo-install)",
+      "reason": "Optional DNF4 debuginfo workflow; the selected package manager is DNF5."
+    },
+    {
+      "package": "git-credential-oauth",
+      "relation": "enhances",
+      "expression": "git",
+      "reason": "Optional account-specific credential helper; no automatic authentication provider is selected."
+    },
+    {
+      "package": "glib-networking",
+      "relation": "recommends",
+      "expression": "libproxy-duktape",
+      "reason": "The retired package name is replaced by the installed libproxy backend linked to Duktape."
+    },
+    {
+      "package": "glibc",
+      "relation": "suggests",
+      "expression": "glibc-minimal-langpack = 2.43-9.fc44",
+      "reason": "The image provides explicit glibc language packs instead of the mutually alternative minimal language package."
+    },
+    {
+      "package": "glx-utils",
+      "relation": "recommends",
+      "expression": "xdriinfo",
+      "reason": "Optional X11 diagnostics; not required for the default Wayland desktop."
+    },
+    {
+      "package": "gnome-control-center",
+      "relation": "recommends",
+      "expression": "bolt",
+      "reason": "Thunderbolt authorization management is an explicit hardware opt-in; do not enable a new persistent manager."
+    },
+    {
+      "package": "gnome-control-center",
+      "relation": "recommends",
+      "expression": "malcontent-control",
+      "reason": "Optional parental-control settings frontend; no default parental-control administration workflow is selected."
+    },
+    {
+      "package": "gnome-control-center",
+      "relation": "recommends",
+      "expression": "rygel",
+      "reason": "UPnP/DLNA sharing and discovery remain disabled."
+    },
+    {
+      "package": "gnome-online-accounts",
+      "relation": "recommends",
+      "expression": "evolution-ews-core",
+      "reason": "Optional Exchange account backend; no online-account integration is enabled by default."
+    },
+    {
+      "package": "gnome-shell",
+      "relation": "recommends",
+      "expression": "bolt(x86-64)",
+      "reason": "Thunderbolt authorization management is an explicit hardware opt-in; do not enable a new persistent manager."
+    },
+    {
+      "package": "gnome-shell",
+      "relation": "recommends",
+      "expression": "gnome-tour",
+      "reason": "Optional onboarding tour; the workstation supplies its own setup workflow."
+    },
+    {
+      "package": "gnome-software",
+      "relation": "recommends",
+      "expression": "gnome-software-fedora-langpacks",
+      "reason": "Automatic language-package installation is outside the configured Flatpak-only GNOME Software role."
+    },
+    {
+      "package": "gstreamer1-plugins-good-qt",
+      "relation": "supplements",
+      "expression": "(gstreamer1-plugins-good and qt5-qtdeclarative)",
+      "reason": "Optional GStreamer QML video integration; not used by the selected default players."
+    },
+    {
+      "package": "gstreamer1-plugins-good-qt6",
+      "relation": "supplements",
+      "expression": "(gstreamer1-plugins-good and qt6-qtdeclarative)",
+      "reason": "Optional GStreamer QML video integration; not used by the selected default players."
+    },
+    {
+      "package": "haveged",
+      "relation": "enhances",
+      "expression": "openssl",
+      "reason": "Do not add an additional entropy daemon; retain the kernel random-number and selected entropy configuration."
+    },
+    {
+      "package": "haveged",
+      "relation": "enhances",
+      "expression": "openvpn",
+      "reason": "Do not add an additional entropy daemon; retain the kernel random-number and selected entropy configuration."
+    },
+    {
+      "package": "haveged",
+      "relation": "enhances",
+      "expression": "systemd",
+      "reason": "Do not add an additional entropy daemon; retain the kernel random-number and selected entropy configuration."
+    },
+    {
+      "package": "ibus-typing-booster",
+      "relation": "recommends",
+      "expression": "gdouros-symbola-fonts",
+      "reason": "Optional additional font family; the selected desktop font coverage remains available."
+    },
+    {
+      "package": "ibus-typing-booster",
+      "relation": "recommends",
+      "expression": "python3-httpx",
+      "reason": "Optional Typing Booster AI-chat transport; no remote model or chat server is configured."
+    },
+    {
+      "package": "ibus-typing-booster",
+      "relation": "recommends",
+      "expression": "python3-pyaudio",
+      "reason": "Optional Typing Booster audio-input integration; do not add speech capture to the default input workflow."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-art-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-book-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-decorative-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-digital-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-farsi-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-letter-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-naskh-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-office-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-one-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-pen-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-poster-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-qurn-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-screen-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-title-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "kacst-titlel-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "paktype-naqsh-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ar",
+      "relation": "recommends",
+      "expression": "paktype-tehreer-fonts",
+      "reason": "Optional alternative Arabic font families; the selected Noto families provide the base language coverage."
+    },
+    {
+      "package": "langpacks-fonts-ru",
+      "relation": "recommends",
+      "expression": "pt-sans-fonts",
+      "reason": "Optional additional font family; the selected desktop font coverage remains available."
+    },
+    {
+      "package": "less",
+      "relation": "recommends",
+      "expression": "(less-color = 704-4.fc44 if perl-interpreter)",
+      "reason": "Optional less syntax-highlighting or HTML preview integration; plain-text paging remains available."
+    },
+    {
+      "package": "less",
+      "relation": "recommends",
+      "expression": "html2text",
+      "reason": "Optional less syntax-highlighting or HTML preview integration; plain-text paging remains available."
+    },
+    {
+      "package": "libavcodec-free",
+      "relation": "suggests",
+      "expression": "openh264(x86-64)",
+      "reason": "Cisco OpenH264 is supplied only through the explicit codec opt-in."
+    },
+    {
+      "package": "libblockdev-mpath",
+      "relation": "recommends",
+      "expression": "device-mapper-multipath",
+      "reason": "Optional Fibre Channel or multipath storage support; outside the supported default local-storage configuration."
+    },
+    {
+      "package": "libmodplug",
+      "relation": "suggests",
+      "expression": "/etc/timidity.cfg",
+      "reason": "Optional MIDI soundfont data; not required for the selected media playback baseline."
+    },
+    {
+      "package": "libreoffice-gtk4",
+      "relation": "supplements",
+      "expression": "(libreoffice-core(x86-64) and gtk4(x86-64))",
+      "reason": "Alternative LibreOffice UI backend; retain the already selected GTK integration."
+    },
+    {
+      "package": "libreoffice-langpack-ar",
+      "relation": "recommends",
+      "expression": "libreoffice-help-ar",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-de",
+      "relation": "recommends",
+      "expression": "libreoffice-help-de",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-en",
+      "relation": "recommends",
+      "expression": "libreoffice-help-en",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-es",
+      "relation": "recommends",
+      "expression": "libreoffice-help-es",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-fr",
+      "relation": "recommends",
+      "expression": "libreoffice-help-fr",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-it",
+      "relation": "recommends",
+      "expression": "libreoffice-help-it",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-ja",
+      "relation": "recommends",
+      "expression": "libreoffice-help-ja",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-ko",
+      "relation": "recommends",
+      "expression": "libreoffice-help-ko",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-nl",
+      "relation": "recommends",
+      "expression": "libreoffice-help-nl",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-pl",
+      "relation": "recommends",
+      "expression": "libreoffice-help-pl",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-pt-BR",
+      "relation": "recommends",
+      "expression": "libreoffice-help-pt-BR",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-pt-PT",
+      "relation": "recommends",
+      "expression": "libreoffice-help-pt-PT",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-ru",
+      "relation": "recommends",
+      "expression": "libreoffice-help-ru",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-zh-Hans",
+      "relation": "recommends",
+      "expression": "libreoffice-help-zh-Hans",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreoffice-langpack-zh-Hant",
+      "relation": "recommends",
+      "expression": "libreoffice-help-zh-Hant",
+      "reason": "Optional offline help data is excluded for all languages; LibreOffice interface translations remain available."
+    },
+    {
+      "package": "libreport-plugin-bugzilla",
+      "relation": "suggests",
+      "expression": "python3-pytest",
+      "reason": "Optional upstream test dependencies; not required by the shipped application runtime."
+    },
+    {
+      "package": "libreport-plugin-bugzilla",
+      "relation": "suggests",
+      "expression": "python3-vcrpy",
+      "reason": "Optional upstream test dependencies; not required by the shipped application runtime."
+    },
+    {
+      "package": "libvirt-daemon-driver-qemu",
+      "relation": "recommends",
+      "expression": "nbdkit",
+      "reason": "Optional remote VM disk source plugins; local image storage remains supported."
+    },
+    {
+      "package": "libvirt-daemon-driver-qemu",
+      "relation": "recommends",
+      "expression": "nbdkit-curl-plugin",
+      "reason": "Optional remote VM disk source plugins; local image storage remains supported."
+    },
+    {
+      "package": "libvirt-daemon-driver-qemu",
+      "relation": "recommends",
+      "expression": "nbdkit-ssh-plugin",
+      "reason": "Optional remote VM disk source plugins; local image storage remains supported."
+    },
+    {
+      "package": "libvirt-daemon-driver-storage-core",
+      "relation": "recommends",
+      "expression": "nfs-utils",
+      "reason": "Optional network-filesystem services; no NFS client or server workflow is enabled by default."
+    },
+    {
+      "package": "libvirt-daemon-kvm",
+      "relation": "recommends",
+      "expression": "libvirt-daemon = 12.0.0-3.fc44",
+      "reason": "Umbrella daemon package; the required modular libvirt drivers and sockets are selected explicitly."
+    },
+    {
+      "package": "libxcrypt",
+      "relation": "recommends",
+      "expression": "mkpasswd",
+      "reason": "Optional password-hash generation tool; authentication uses the selected native account tools."
+    },
+    {
+      "package": "oci-seccomp-bpf-hook",
+      "relation": "enhances",
+      "expression": "podman",
+      "reason": "Optional container syscall-policy tracing hook; existing container seccomp enforcement remains enabled."
+    },
+    {
+      "package": "openvpn",
+      "relation": "recommends",
+      "expression": "kmod-ovpn",
+      "reason": "The selected Fedora kernel already contains the native ovpn module; no external kmod package is needed."
+    },
+    {
+      "package": "orca",
+      "relation": "recommends",
+      "expression": "libwnck3",
+      "reason": "Legacy X11 window-management backend; the shipped Orca/AT-SPI stack supports the default Wayland session."
+    },
+    {
+      "package": "pam",
+      "relation": "suggests",
+      "expression": "libdb-convert-util",
+      "reason": "Optional legacy Berkeley DB conversion; not required by the selected authentication configuration."
+    },
+    {
+      "package": "perl-URI",
+      "relation": "suggests",
+      "expression": "perl(Business::ISBN) >= 3.005",
+      "reason": "Optional Perl protocol or legacy database backend; no selected system helper requires this extension."
+    },
+    {
+      "package": "perl-URI",
+      "relation": "suggests",
+      "expression": "perl(Regexp::IPv6) >= 0.03",
+      "reason": "Optional Perl protocol or legacy database backend; no selected system helper requires this extension."
+    },
+    {
+      "package": "perl-interpreter",
+      "relation": "suggests",
+      "expression": "perl-doc = 5.42.3-525.fc44",
+      "reason": "Optional programming reference documentation; not a runtime dependency."
+    },
+    {
+      "package": "perl-libnet",
+      "relation": "suggests",
+      "expression": "perl(Authen::SASL)",
+      "reason": "Optional Perl protocol or legacy database backend; no selected system helper requires this extension."
+    },
+    {
+      "package": "perl-libs",
+      "relation": "recommends",
+      "expression": "perl(NDBM_File)",
+      "reason": "Optional Perl protocol or legacy database backend; no selected system helper requires this extension."
+    },
+    {
+      "package": "perl-libs",
+      "relation": "suggests",
+      "expression": "perl(DB_File)",
+      "reason": "Optional Perl protocol or legacy database backend; no selected system helper requires this extension."
+    },
+    {
+      "package": "perl-libs",
+      "relation": "suggests",
+      "expression": "perl(GDBM_File)",
+      "reason": "Optional Perl protocol or legacy database backend; no selected system helper requires this extension."
+    },
+    {
+      "package": "perl-libs",
+      "relation": "suggests",
+      "expression": "perl(ODBM_File)",
+      "reason": "Optional Perl protocol or legacy database backend; no selected system helper requires this extension."
+    },
+    {
+      "package": "pipewire-jack-audio-connection-kit-devel",
+      "relation": "enhances",
+      "expression": "pipewire-jack-audio-connection-kit-libs",
+      "reason": "Development headers for optional JACK clients; the runtime compatibility library is already present."
+    },
+    {
+      "package": "polkit",
+      "relation": "recommends",
+      "expression": "polkit-pkla-compat",
+      "reason": "Legacy authorization compatibility backend; use the current native Polkit policy format."
+    },
+    {
+      "package": "python3-blivet",
+      "relation": "recommends",
+      "expression": "libblockdev-s390 >= 3.4.0",
+      "reason": "s390-specific storage integration is not applicable to this x86_64 image."
+    },
+    {
+      "package": "python3-blivet",
+      "relation": "recommends",
+      "expression": "s390utils-core >= 2.31.0",
+      "reason": "s390-specific storage integration is not applicable to this x86_64 image."
+    },
+    {
+      "package": "python3-distro",
+      "relation": "suggests",
+      "expression": "/usr/bin/lsb_release",
+      "reason": "Optional legacy distribution-identification tools; the native os-release path is available."
+    },
+    {
+      "package": "python3-dnf",
+      "relation": "recommends",
+      "expression": "python3-unbound",
+      "reason": "Optional DNF4 DNSSEC resolver integration; retain the DNF5 and configured system resolver paths."
+    },
+    {
+      "package": "qatlib",
+      "relation": "recommends",
+      "expression": "qatlib-service",
+      "reason": "Optional hardware-specific QAT service; no QAT device is required by the default workstation."
+    },
+    {
+      "package": "sane-airscan",
+      "relation": "recommends",
+      "expression": "ipp-usb",
+      "reason": "Optional printer discovery or driver integration; printing remains an explicit device-specific opt-in."
+    },
+    {
+      "package": "sane-backends",
+      "relation": "suggests",
+      "expression": "libnsl",
+      "reason": "Optional legacy scanner or camera backend; not required by the selected camera stack."
+    },
+    {
+      "package": "sane-backends-libs",
+      "relation": "recommends",
+      "expression": "sane-backends-drivers-cameras(x86-64) = 1.4.0-6.fc44",
+      "reason": "Optional legacy scanner or camera backend; not required by the selected camera stack."
+    },
+    {
+      "package": "sos",
+      "relation": "recommends",
+      "expression": "python3-boto3",
+      "reason": "Optional SOS cloud-upload or file-identification support; not part of the default diagnostic workflow."
+    },
+    {
+      "package": "sos",
+      "relation": "recommends",
+      "expression": "python3-file-magic",
+      "reason": "Optional SOS cloud-upload or file-identification support; not part of the default diagnostic workflow."
+    },
+    {
+      "package": "sso-mib-gch-smtp-o365",
+      "relation": "enhances",
+      "expression": "git-core",
+      "reason": "Optional account-specific credential helper; no automatic authentication provider is selected."
+    },
+    {
+      "package": "sudo",
+      "relation": "recommends",
+      "expression": "sudo-python-plugin(x86-64) = 1.9.17-10.p2.fc44",
+      "reason": "Optional Python sudo policy plugin; retain the selected native sudoers policy."
+    },
+    {
+      "package": "system-config-printer-libs",
+      "relation": "recommends",
+      "expression": "PackageKit",
+      "reason": "Automatic native-package installation through PackageKit remains disabled; DNF5 owns native package transactions."
+    },
+    {
+      "package": "system-config-printer-libs",
+      "relation": "suggests",
+      "expression": "python3-smbc",
+      "reason": "Optional Samba printer integration; network printing remains an explicit opt-in."
+    },
+    {
+      "package": "systemd",
+      "relation": "recommends",
+      "expression": "systemd-networkd = 259.9-1.fc44",
+      "reason": "Alternative network manager; NetworkManager owns the workstation network configuration."
+    },
+    {
+      "package": "systemd-container",
+      "relation": "recommends",
+      "expression": "qemu-kvm-core",
+      "reason": "Fileless umbrella metapackage; the selected installed QEMU/KVM packages satisfy their hard dependencies."
+    },
+    {
+      "package": "systemd-udev",
+      "relation": "suggests",
+      "expression": "systemd-bootchart",
+      "reason": "Optional crash-dump or continuous boot/memory instrumentation; not part of the quiet default system."
+    },
+    {
+      "package": "toolbox",
+      "relation": "recommends",
+      "expression": "p11-kit-server",
+      "reason": "Optional PKCS#11 forwarding server; smart-card forwarding is not enabled by default."
+    },
+    {
+      "package": "tuned",
+      "relation": "recommends",
+      "expression": "python3-perf",
+      "reason": "Optional TuneD scheduler tracing; the selected CPU profiles do not require this backend."
+    },
+    {
+      "package": "udisks2",
+      "relation": "recommends",
+      "expression": "nilfs-utils",
+      "reason": "Optional filesystem administration tools; outside the default supported filesystem setup."
+    },
+    {
+      "package": "udisks2",
+      "relation": "recommends",
+      "expression": "udftools",
+      "reason": "Optional filesystem administration tools; outside the default supported filesystem setup."
+    },
+    {
+      "package": "unbound-libs",
+      "relation": "recommends",
+      "expression": "unbound-anchor",
+      "reason": "Optional local Unbound trust-anchor maintenance; the workstation uses its configured resolved/DoT path."
+    },
+    {
+      "package": "unoconv",
+      "relation": "suggests",
+      "expression": "libreoffice-writer2latex",
+      "reason": "Optional Writer-to-LaTeX export; this package has no provider in the supported Fedora repositories."
+    },
+    {
+      "package": "unoconv",
+      "relation": "suggests",
+      "expression": "openoffice.org-diafilter",
+      "reason": "Optional legacy office export filter; not required by the selected LibreOffice formats."
+    },
+    {
+      "package": "virt-manager",
+      "relation": "suggests",
+      "expression": "python3-libguestfs",
+      "reason": "Optional offline guest-disk inspection backend; VM creation and local-image operation do not require it."
+    },
+    {
+      "package": "xfsprogs",
+      "relation": "suggests",
+      "expression": "xfsprogs-xfs_scrub",
+      "reason": "Optional scheduled XFS scrub support; the installed root filesystem uses Btrfs."
+    },
+    {
+      "package": "xrdb",
+      "relation": "recommends",
+      "expression": "cpp",
+      "reason": "Optional X resource preprocessing; the default Wayland session does not require it."
+    }
+  ]
+}
